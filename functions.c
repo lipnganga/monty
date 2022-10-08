@@ -1,125 +1,141 @@
 #include "monty.h"
-glo_t glo;
+
 
 /**
- * op_push - function that push an element to the stack
- * @stack: a pointer to the head of a linked list
- * @line_number: the line number
- *
- * Return: nothing
+ * push_ - function that pushes a node to the head of the stack
+ * @head: double pointer, pointer to a pointer to the head node
+ * @line_number: index of the bytecode line where function is called
+ * Return: void
  */
 
-void op_push(stack_t **stack, unsigned int line_number)
+void push_(stack_t **head, unsigned int line_number)
 {
-	stack_t *new_node;
-	(void)line_number;
+	stack_t *new_node = NULL;
+	stack_t *temp = NULL;
 
+	(void)line_number;
 	new_node = malloc(sizeof(stack_t));
-	if (!new_node)
+	if (new_node == NULL)
 	{
-		dprintf(STDERR_FILENO, "Error: malloc failed\n");
-		free_buff();
-		free_stack(*stack);
-		exit(EXIT_FAILURE);
+		dprintf(2, "Error: malloc failed\n");
+		exit_check = 1;
+		return;
 	}
-	new_node->n = glo.node_data;
-	new_node->next = NULL;
+	new_node->n = num;
 	new_node->prev = NULL;
+	new_node->next = NULL;
 
-	if (*stack)
-	{
-		new_node->next = *stack;
-
-		(*stack)->prev = new_node;
-	}
-	*stack = new_node;
-
-}
-
-/**
- * op_pall - function that prints out all the elements of a linked list
- * @stack: a pointer to the head of a linked list
- * @line_number: the line number
- *
- * Return: nothing
- */
-
-void op_pall(stack_t **stack, unsigned int line_number)
-{
-	stack_t *current = *stack;
-	(void)line_number;
-
-	while (current)
-	{
-		printf("%d\n", current->n);
-		current = current->next;
-	}
-}
-
-/**
- * op_pint - function that prints the value at the top of the stack
- * @stack: a pointer to the head of a linked list
- * @line_number: the line number
- *
- * Return: nothing
- */
-
-void op_pint(stack_t **stack, unsigned int line_number)
-{
-	stack_t *current = *stack;
-
-	if (current)
-	{
-		printf("%d\n", current->n);
-	}
+	if (*head == NULL)
+		*head = new_node;
 	else
 	{
-		pint_error(line_number);
+		if (data_format == 0)
+		{
+			new_node->next = *head;
+			(*head)->prev = new_node;
+			*head = new_node;
+		}
+		else if (data_format == 1)
+		{
+			temp = *head;
+			while (temp->next != NULL)
+				temp = temp->next;
+			temp->next = new_node;
+			new_node->prev = temp;
+		}
 	}
 }
 
 /**
- * op_pop - function that removes the top element of the stack
- * @stack: a pointer to the head of a linked list
- * @line_number: the line number
- *
- * Return: nothing
+ * pall_ - function that prints all the values on the stack,
+ * starting from the top of the stack
+ * @head: double pointer, pointer to a pointer to the head node
+ * @line_number: index of the bytecode line where function is called
+ * Return: void
  */
 
-void op_pop(stack_t **stack, unsigned int line_number)
+void pall_(stack_t **head, unsigned int line_number)
 {
-	stack_t *current = *stack;
-	stack_t *tmp;
+	stack_t *temp = NULL;
 
-	if (!current)
-		pop_error(stack, line_number);
-
-	tmp = current->next;
-	free(current);
-	*stack = tmp;
-	current = *stack;
-	if (current)
+	(void)line_number;
+	if (*head)
 	{
-		current->prev = NULL;
+		temp = *head;
+		while (temp != NULL)
+		{
+			printf("%i\n", temp->n);
+			temp = temp->next;
+		}
 	}
 }
 
 /**
- * op_add - adds the first two nodes together
- * @stack: a pointer to the head of a linked list
- * @line_number: the line number
- * Return: nothing
+ * pint_ - function that prints the value at the top of the stack
+ * @head: double pointer, pointer to a pointer to the head node
+ * @line_number: index of the bytecode line where function is called
+ * Return: void
  */
 
-void op_add(stack_t **stack, unsigned int line_number)
+void pint_(stack_t **head, unsigned int line_number)
 {
-	stack_t *current = *stack;
-	stack_t *second_node;
+	if (!*head)
+	{
+		dprintf(2, "L%i: can't pint, stack empty\n", line_number);
+		exit_check = 1;
+		return;
+	}
+	printf("%i\n", (*head)->n);
+}
 
-	if (!current || !current->next)
-		add_error(line_number);
+/**
+ * pop_ - function that removes the top element of the stack
+ * @head: double pointer, pointer to a pointer to the head node
+ * @line_number: index of the bytecode line where function is called
+ * Return: void
+ */
 
-	second_node = current->next;
-	second_node->n = second_node->n + current->n;
-	op_pop(stack, line_number);
+void pop_(stack_t **head, unsigned int line_number)
+{
+	stack_t *temp = NULL;
+
+	if (!*head)
+	{
+		dprintf(2, "L%i: can't pop an empty stack\n", line_number);
+		exit_check = 1;
+		return;
+	}
+	temp = *head;
+	*head = (*head)->next;
+	if (*head != NULL)
+	{
+		(*head)->prev = NULL;
+		temp->next = NULL;
+	}
+	free(temp);
+}
+
+/**
+ * swap_ - function that swaps the top two elements of the stack
+ * @head: double pointer, pointer to a pointer to the head node
+ * @line_number: index of the bytecode line where function is called
+ * Return: void
+ */
+
+void swap_(stack_t **head, unsigned int line_number)
+{
+	stack_t *temp = NULL;
+
+	if (!(*head) || !((*head)->next))
+	{
+		dprintf(2, "L%i: can't swap, stack too short\n", line_number);
+		exit_check = 1;
+		return;
+	}
+	temp = (*head)->next;
+	(*head)->next = temp->next;
+	(*head)->prev = temp;
+	temp->next = *head;
+	temp->prev = NULL;
+	*head = temp;
 }

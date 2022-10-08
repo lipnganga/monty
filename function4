@@ -127,5 +127,4 @@ void rotr_(stack_t **head, unsigned int line_number)
 	temp->prev = NULL;
 	*head = temp;
 }
-Footer
 

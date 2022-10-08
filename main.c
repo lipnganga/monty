@@ -1,46 +1,54 @@
 #include "monty.h"
-glo_t glo;
+
+int num = 0;
+int data_format = 0;
+int exit_check = 0;
+
 /**
-* main - reads a monty file and executes line by line
-* @argc: argument counter
-* @argv: argument vector
-* Return: 0
-*/
+ * main - interpreter for Monty ByteCodes files
+ * @argc: arguments count
+ * @argv: arguments passed in the command line
+ * Return: TBD
+ */
 
 int main(int argc, char **argv)
 {
+	char *buf = NULL, *file = NULL, *token = NULL, *array[2];
+	size_t bufsize = 0, line_number = 1;
+	FILE *fp = NULL;
+	void (*ptr)();
 	stack_t *head = NULL;
-	ssize_t lines;
-	int check;
-	size_t buff_size = 0;
-	unsigned int counter = 0;
 
-	glo.line_buff = NULL;
-	glo.bigb = NULL;
-
-	argc_check(argc);
-
-	glo.fp = fopen(argv[1], "r");
-	open_check(argv);
-
-	lines = getline(&glo.line_buff, &buff_size, glo.fp);
-	line_check(lines);
-
-	while (lines >= 0)
+	if (argc != 2)
+		dprintf(2, "USAGE: monty file\n"), exit(EXIT_FAILURE);
+	file = argv[1];
+	fp = fopen(file, "r");
+	if (fp == NULL)
+		dprintf(2, "Error: Can't open file %s\n", argv[1]), exit(EXIT_FAILURE);
+	while (getline(&buf, &bufsize, fp) != -1)
 	{
-		glo.bigb = NULL;
-		counter++;
-		glo.bigb = parse_line(counter, head);
-		if (glo.bigb == NULL)
+		token = strtok(buf, " \t\n");
+		array[0] = token;
+		if (!iscomment(array[0]))
 		{
-			lines = getline(&glo.line_buff, &buff_size, glo.fp);
+			line_number++;
 			continue;
 		}
-		check = get_opcode(&head, counter);
-		op_check(check, counter, head);
-		lines = getline(&glo.line_buff, &buff_size, glo.fp);
+		if (strcmp("push", array[0]) == 0)
+		{
+			token = strtok(NULL, " \t\n");
+			array[1] = token;
+			num = isnumber(array[1], line_number);
+			exit_failure_check(buf, fp, head);
+		}
+		ptr = get_opcode_func(array[0]);
+		if (ptr != NULL)
+			(*ptr)(&head, line_number);
+		else
+			dprintf(2, "L%i: unknown instruction %s\n", (int)line_number, array[0]);
+		exit_failure_check(buf, fp, head);
+		line_number++;
 	}
-	free_buff();
-	free_stack(head);
+	free(buf), fclose(fp), free_stackt(head);
 	return (0);
 }
